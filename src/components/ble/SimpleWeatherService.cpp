@@ -1,21 +1,3 @@
-/*  Copyright (C) 2023 Jean-François Milants
-
-    This file is part of InfiniTime.
-
-    InfiniTime is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published
-    by the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    InfiniTime is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
 #include "components/ble/SimpleWeatherService.h"
 
 #include <algorithm>
@@ -80,7 +62,7 @@ int WeatherCallback(uint16_t /*connHandle*/, uint16_t /*attrHandle*/, struct ble
   return static_cast<Pinetime::Controllers::SimpleWeatherService*>(arg)->OnCommand(ctxt);
 }
 
-SimpleWeatherService::SimpleWeatherService(DateTime& dateTimeController) : dateTimeController(dateTimeController) {
+SimpleWeatherService::SimpleWeatherService(const DateTime& dateTimeController) : dateTimeController(dateTimeController) {
 }
 
 void SimpleWeatherService::Init() {
@@ -127,7 +109,7 @@ int SimpleWeatherService::OnCommand(struct ble_gatt_access_ctxt* ctxt) {
 
 std::optional<SimpleWeatherService::CurrentWeather> SimpleWeatherService::Current() const {
   if (currentWeather) {
-    auto currentTime = dateTimeController.CurrentDateTime().time_since_epoch();
+    auto currentTime = dateTimeController.UTCDateTime().time_since_epoch();
     auto weatherTpSecond = std::chrono::seconds {currentWeather->timestamp};
     auto weatherTp = std::chrono::duration_cast<std::chrono::seconds>(weatherTpSecond);
     auto delta = currentTime - weatherTp;
@@ -141,7 +123,7 @@ std::optional<SimpleWeatherService::CurrentWeather> SimpleWeatherService::Curren
 
 std::optional<SimpleWeatherService::Forecast> SimpleWeatherService::GetForecast() const {
   if (forecast) {
-    auto currentTime = dateTimeController.CurrentDateTime().time_since_epoch();
+    auto currentTime = dateTimeController.UTCDateTime().time_since_epoch();
     auto weatherTpSecond = std::chrono::seconds {forecast->timestamp};
     auto weatherTp = std::chrono::duration_cast<std::chrono::seconds>(weatherTpSecond);
     auto delta = currentTime - weatherTp;
@@ -157,17 +139,4 @@ bool SimpleWeatherService::CurrentWeather::operator==(const SimpleWeatherService
   return this->iconId == other.iconId && this->temperature == other.temperature && this->timestamp == other.timestamp &&
          this->maxTemperature == other.maxTemperature && this->minTemperature == other.maxTemperature &&
          std::strcmp(this->location.data(), other.location.data()) == 0;
-}
-
-bool SimpleWeatherService::Forecast::Day::operator==(const SimpleWeatherService::Forecast::Day& other) const {
-  return this->iconId == other.iconId && this->maxTemperature == other.maxTemperature && this->minTemperature == other.maxTemperature;
-}
-
-bool SimpleWeatherService::Forecast::operator==(const SimpleWeatherService::Forecast& other) const {
-  for (int i = 0; i < this->nbDays; i++) {
-    if (this->days[i] != other.days[i]) {
-      return false;
-    }
-  }
-  return this->timestamp == other.timestamp && this->nbDays == other.nbDays;
 }
